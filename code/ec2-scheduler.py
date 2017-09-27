@@ -16,6 +16,7 @@
 import boto3
 import datetime
 import json
+import sys
 from urllib.request import Request
 from urllib.request import urlopen
 from collections import Counter
@@ -39,19 +40,23 @@ def putCloudWatchMetric(region, instance_id, instance_state):
                 }
             ]
         }]
-
     )
 
 
-def lambda_handler(event, context):
+def lambda_handler(event=None, context=None, stack_name=None):
 
     print("Running EC2 Scheduler")
 
     ec2 = boto3.client('ec2')
     cf = boto3.client('cloudformation')
     outputs = {}
-    stack_name = context.invoked_function_arn.split(':')[6].rsplit('-', 2)[0]
+
+    if stack_name is None:
+        if context is None:
+            sys.exit(1)
+        stack_name = context.invoked_function_arn.split(':')[6].rsplit('-', 2)[0]
     response = cf.describe_stacks(StackName=stack_name)
+
     for e in response['Stacks'][0]['Outputs']:
         outputs[e['OutputKey']] = e['OutputValue']
     ddbTableName = outputs['DDBTableName']
@@ -243,3 +248,6 @@ def lambda_handler(event, context):
         content = rsp.read()
         rsp_code = rsp.getcode()
         print('Response Code: {}'.format(rsp_code))
+
+if __name__ == '__main__':
+    lambda_handler(stack_name=sys.argv[1])
