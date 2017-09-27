@@ -5,7 +5,7 @@
 #  with the License. A copy of the License is located at                                                             #
 #                                                                                                                    #
 #      http://aws.amazon.com/asl/                                                                                    #
-#                                                                                                                    #   
+#                                                                                                                    #
 #  or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES #
 #  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions    #
 #  and limitations under the License.                                                                                #
@@ -19,8 +19,9 @@ from urllib2 import Request
 from urllib2 import urlopen
 from collections import Counter
 
+
 def putCloudWatchMetric(region, instance_id, instance_state):
-    
+
     cw = boto3.client('cloudwatch')
 
     cw.put_metric_data(
@@ -37,8 +38,9 @@ def putCloudWatchMetric(region, instance_id, instance_state):
                 }
             ]
         }]
-        
+
     )
+
 
 def lambda_handler(event, context):
 
@@ -63,8 +65,6 @@ def lambda_handler(event, context):
     )
     item = response['Item']
 
-
-
     # Reading Default Values from DynamoDB
     customTagName = str(item['CustomTagName'])
     customTagLen = len(customTagName)
@@ -82,8 +82,8 @@ def lambda_handler(event, context):
     regionDict = {}
     allRegionDict = {}
     regionsLabelDict = {}
-    postDict = {}  
-    
+    postDict = {}
+
     for region in awsRegions:
         try:
             # Create connection to the EC2 using Boto3 resources interface
@@ -107,7 +107,7 @@ def lambda_handler(event, context):
             print "Creating", region['RegionName'], "instance lists..."
 
             for i in instances:
-                if i.tags != None:
+                if i.tags is not None:
                     for t in i.tags:
                         if t['Key'][:customTagLen] == customTagName:
 
@@ -161,7 +161,7 @@ def lambda_handler(event, context):
 
                             # Append to start list
                             if startTime >= str(nowMax) and startTime <= str(now) and \
-                                    isActiveDay == True and state == "stopped":
+                                    isActiveDay and state == "stopped":
                                 startList.append(i.instance_id)
                                 print i.instance_id, " added to START list"
                                 if createMetrics == 'enabled':
@@ -169,7 +169,7 @@ def lambda_handler(event, context):
 
                             # Append to stop list
                             if stopTime >= str(nowMax) and stopTime <= str(now) and \
-                                    isActiveDay == True and state == "running":
+                                    isActiveDay and state == "running":
                                 stopList.append(i.instance_id)
                                 print i.instance_id, " added to STOP list"
                                 if createMetrics == 'enabled':
@@ -188,11 +188,10 @@ def lambda_handler(event, context):
                 print "No Instances to Start"
 
             if stopList:
-                print "Stopping", len(stopList) ,"instances", stopList
+                print "Stopping", len(stopList), "instances", stopList
                 ec2.instances.filter(InstanceIds=stopList).stop()
             else:
                 print "No Instances to Stop"
-
 
             # Built payload for each region
             if sendData == "yes":
@@ -201,7 +200,7 @@ def lambda_handler(event, context):
                 countStopDict = {}
                 typeStopDict = {}
                 runDictType = {}
-                stopDictType = {}   
+                stopDictType = {}
                 runDict = dict(Counter(runningStateList))
                 for k, v in runDict.iteritems():
                     countRunDict['Count'] = v
@@ -222,9 +221,9 @@ def lambda_handler(event, context):
                 StateSum['instance_state'] = typeStateSum
                 regionDict[awsregion] = StateSum
                 allRegionDict.update(regionDict)
-            
+
         except Exception as e:
-            print ("Exception: "+str(e))
+            print("Exception: "+str(e))
             continue
 
     # Build payload for the account
@@ -236,11 +235,10 @@ def lambda_handler(event, context):
         postDict['UUID'] = UUID
         # API Gateway URL to make HTTP POST call
         url = 'https://metrics.awssolutionsbuilder.com/generic'
-        data=json.dumps(postDict)
+        data = json.dumps(postDict)
         headers = {'content-type': 'application/json'}
         req = Request(url, data, headers)
         rsp = urlopen(req)
         content = rsp.read()
         rsp_code = rsp.getcode()
-        print ('Response Code: {}'.format(rsp_code))
-
+        print('Response Code: {}'.format(rsp_code))
