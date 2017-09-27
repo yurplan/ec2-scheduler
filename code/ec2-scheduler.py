@@ -15,8 +15,8 @@
 import boto3
 import datetime
 import json
-from urllib2 import Request
-from urllib2 import urlopen
+from urllib.request import Request
+from urllib.request import urlopen
 from collections import Counter
 
 
@@ -44,7 +44,7 @@ def putCloudWatchMetric(region, instance_id, instance_state):
 
 def lambda_handler(event, context):
 
-    print "Running EC2 Scheduler"
+    print("Running EC2 Scheduler")
 
     ec2 = boto3.client('ec2')
     cf = boto3.client('cloudformation')
@@ -104,7 +104,7 @@ def lambda_handler(event, context):
             # List all instances
             instances = ec2.instances.all()
 
-            print "Creating", region['RegionName'], "instance lists..."
+            print("Creating", region['RegionName'], "instance lists...")
 
             for i in instances:
                 if i.tags is not None:
@@ -163,7 +163,7 @@ def lambda_handler(event, context):
                             if startTime >= str(nowMax) and startTime <= str(now) and \
                                     isActiveDay and state == "stopped":
                                 startList.append(i.instance_id)
-                                print i.instance_id, " added to START list"
+                                print(i.instance_id, " added to START list")
                                 if createMetrics == 'enabled':
                                     putCloudWatchMetric(region['RegionName'], i.instance_id, 1)
 
@@ -171,7 +171,7 @@ def lambda_handler(event, context):
                             if stopTime >= str(nowMax) and stopTime <= str(now) and \
                                     isActiveDay and state == "running":
                                 stopList.append(i.instance_id)
-                                print i.instance_id, " added to STOP list"
+                                print(i.instance_id, " added to STOP list")
                                 if createMetrics == 'enabled':
                                     putCloudWatchMetric(region['RegionName'], i.instance_id, 0)
 
@@ -182,16 +182,16 @@ def lambda_handler(event, context):
 
             # Execute Start and Stop Commands
             if startList:
-                print "Starting", len(startList), "instances", startList
+                print("Starting", len(startList), "instances", startList)
                 ec2.instances.filter(InstanceIds=startList).start()
             else:
-                print "No Instances to Start"
+                print("No Instances to Start")
 
             if stopList:
-                print "Stopping", len(stopList), "instances", stopList
+                print("Stopping", len(stopList), "instances", stopList)
                 ec2.instances.filter(InstanceIds=stopList).stop()
             else:
-                print "No Instances to Stop"
+                print("No Instances to Stop")
 
             # Built payload for each region
             if sendData == "yes":
@@ -202,12 +202,12 @@ def lambda_handler(event, context):
                 runDictType = {}
                 stopDictType = {}
                 runDict = dict(Counter(runningStateList))
-                for k, v in runDict.iteritems():
+                for k, v in runDict.items():
                     countRunDict['Count'] = v
                     typeRunDict[k] = countRunDict['Count']
 
                 stopDict = dict(Counter(stoppedStateList))
-                for k, v in stopDict.iteritems():
+                for k, v in stopDict.items():
                     countStopDict['Count'] = v
                     typeStopDict[k] = countStopDict['Count']
 
@@ -235,7 +235,7 @@ def lambda_handler(event, context):
         postDict['UUID'] = UUID
         # API Gateway URL to make HTTP POST call
         url = 'https://metrics.awssolutionsbuilder.com/generic'
-        data = json.dumps(postDict)
+        data = json.dumps(postDict).encode('utf-8')
         headers = {'content-type': 'application/json'}
         req = Request(url, data, headers)
         rsp = urlopen(req)
