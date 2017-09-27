@@ -1,3 +1,4 @@
+#!/bin/env python3
 ######################################################################################################################
 #  Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.                                           #
 #                                                                                                                    #
